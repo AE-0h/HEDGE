@@ -39,8 +39,6 @@ contract HedgeTest {
     Currency currency0;
     Currency currency1;
 
-    uint32 public time;
-
     uint160 public constant SQRT_RATIO_1_1 = 79228162514264337593543950336;
     uint160 constant SQRT_RATIO_10_1 = 250541448375047931186413801569;
     int24 public constant MAX_TICK_SPACING = type(int16).max;
@@ -82,17 +80,20 @@ contract HedgeTest {
             "FairTradeTest: Hook address mismatch"
         );
 
-        setTime(1);
         poolKey = PoolKey(currency0, currency1, 0, MAX_TICK_SPACING, hook);
         poolId = poolKey.toId();
 
         modifyPositionRouter = new PoolModifyPositionTest(
             IPoolManager(manager)
         );
+        swapRouter = new PoolSwapTest(IPoolManager(manager));
+
         token0.approve(address(hook), type(uint256).max);
         token1.approve(address(hook), type(uint256).max);
         token0.approve(address(modifyPositionRouter), type(uint256).max);
         token1.approve(address(modifyPositionRouter), type(uint256).max);
+        token0.approve(address(swapRouter), type(uint256).max);
+        token1.approve(address(swapRouter), type(uint256).max);
     }
 
     function sort(
@@ -112,12 +113,34 @@ contract HedgeTest {
         }
     }
 
-    function setTime(uint32 _time) internal {
-        time = _time;
-    }
-
-    function testBeforeInitializeAllowsPoolCreation() public {
-        IPoolManager(manager).initialize(poolKey, SQRT_RATIO_1_1, ZERO_BYTES);
+    function test_setTrigger() public {
+        uint128 priceLimit = 513 * 10 ** 16;
+        uint128 maxAmount = 100 * 10 ** 18;
+        hook.setTrigger(
+            Currency.wrap(address(token0)),
+            priceLimit,
+            maxAmount,
+            true
+        );
+        (
+            ,
+            ,
+            ,
+            ,
+            uint256 minPriceLimit,
+            ,
+            ,
+            uint256 maxAmountSwap,
+            address owner
+        ) = hook.triggersByCurrency(
+                Currency.wrap(address(token0)),
+                priceLimit,
+                0
+            );
+        assertEq(Currency.unwrap(currency0), address(token0));
+        assertEq(owner, alice);
+        assertEq(minPriceLimit, priceLimit);
+        assertEq(maxAmountSwap, maxAmount);
     }
 
     receive() external payable {}
