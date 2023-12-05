@@ -27,7 +27,6 @@ contract HedgeTest is HookTest, Deployers {
     bytes32 id;
 
     uint256 internal mintAmount = 12e18;
-    address internal alice =
         address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
     address internal thomas =
         address(0x14dC79964da2C08b23698B3D3cc7Ca32193d9955);

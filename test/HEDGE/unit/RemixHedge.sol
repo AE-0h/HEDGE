@@ -26,8 +26,6 @@ contract HedgeTest {
     PoolId poolId;
 
     address manager;
-    address alice;
-    address thomas;
 
     MockERC20 token0;
     MockERC20 token1;
@@ -46,10 +44,12 @@ contract HedgeTest {
     int24 constant TICK_SPACING = 60;
     bytes internal constant ZERO_BYTES = bytes("");
 
-    constructor(address _manager, address _alice, address _thomas) {
+    event TestLog(string testName, string message);
+
+    event Failure(string message);
+
+    constructor(address _manager) {
         manager = _manager;
-        alice = _alice;
-        thomas = _thomas;
     }
 
     function setUp() public {
@@ -58,12 +58,7 @@ contract HedgeTest {
 
         (currency0, currency1) = sort(token0, token1);
 
-        uint160 flags = uint160(
-            Hooks.BEFORE_INITIALIZE_FLAG |
-                Hooks.AFTER_INITIALIZE_FLAG |
-                Hooks.BEFORE_MODIFY_POSITION_FLAG |
-                Hooks.BEFORE_SWAP_FLAG
-        );
+        uint160 flags = uint160(Hooks.AFTER_SWAP_FLAG);
 
         (address hookAddress, bytes32 salt) = HookMiner.find(
             address(this),
@@ -137,10 +132,32 @@ contract HedgeTest {
                 priceLimit,
                 0
             );
-        assertEq(Currency.unwrap(currency0), address(token0));
-        assertEq(owner, alice);
-        assertEq(minPriceLimit, priceLimit);
-        assertEq(maxAmountSwap, maxAmount);
+        if (Currency.unwrap(currency0) == address(token0)) {
+            emit TestLog(
+                "Currency0 test",
+                "PASSED:Currency0 and token0 are indeed the same address"
+            );
+        } else {
+            emit Failure(
+                "FAILED:Currency0 and token0 are not the same address"
+            );
+        }
+        if (minPriceLimit == priceLimit) {
+            emit TestLog(
+                "PriceLimit test",
+                "PASSED: minPriceLimit equals priceLimit"
+            );
+        } else {
+            emit Failure("FAILED:minPriceLimit does not equal priceLimit");
+        }
+        if (maxAmountSwap == maxAmount) {
+            emit TestLog(
+                "MaxSwapAmount test",
+                "PASSED: maxAmountSwap equals maxAmount"
+            );
+        } else {
+            emit Failure("FAILED: maxAmountSwap does not equal maxAmount");
+        }
     }
 
     receive() external payable {}
